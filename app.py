@@ -1,42 +1,43 @@
 import streamlit as st
 
-st.set_page_config(page_title="GoldSight", page_icon=":bar_chart:", layout="centered")
-
-# --- Simpan status pengguna ---
-if 'user_name' not in st.session_state:
+# Inisialisasi session state
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_name" not in st.session_state:
     st.session_state.user_name = ""
-if 'show_popup' not in st.session_state:
-    st.session_state.show_popup = False
 
-# --- Logo ---
-st.image("assets/gold_icon.png", width=120)
+# Fungsi logout
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.user_name = ""
 
-# --- Judul ---
-st.markdown("""
-# **GoldSight**  
-#### Navigasi Cerdas Investasi Emas Anda
-
-Prediksi harga emas berbasis deep learning untuk keputusan investasi terbaik.
-""")
-
-# --- Tombol buka pop-up ---
-if not st.session_state.user_name:
-    if st.button("🚀 Go to Dashboard"):
-        st.session_state.show_popup = True
-
-# --- Pop-up input nama ---
-if st.session_state.show_popup and not st.session_state.user_name:
+# Halaman login
+def show_login():
+    st.markdown("<h1 style='text-align: center;'>Selamat Datang di GoldSight</h1>", unsafe_allow_html=True)
+    st.write("Silakan masukkan nama Anda untuk mengakses dashboard.")
+    
     with st.form("login_form", clear_on_submit=True):
-        name = st.text_input("Masukkan nama Anda:")
+        name = st.text_input("Nama Lengkap:")
         submit = st.form_submit_button("Masuk")
         if submit:
-            if name.strip():
-                st.session_state.user_name = name.strip().title()
-                st.success(f"Halo, {st.session_state.user_name}! Klik tombol di bawah untuk lanjut.")
-            else:
+            if name.strip() == "":
                 st.warning("Nama tidak boleh kosong.")
+            else:
+                st.session_state.logged_in = True
+                st.session_state.user_name = name.strip().capitalize()
+                st.rerun()
 
-# --- Tampilkan tombol lanjut ke dashboard ---
-if st.session_state.user_name:
-    st.markdown(f"👋 Hai **{st.session_state.user_name}**, selamat datang di GoldSight!")
-    st.page_link("pages/1_Data_Exploration.py", label="📊 Buka Dashboard", icon="📈")
+# Halaman utama setelah login
+def show_dashboard():
+    st.sidebar.title("Navigasi")
+    st.sidebar.markdown(f"Selamat datang, **{st.session_state.user_name}**")
+    st.sidebar.button("Keluar", on_click=logout)
+
+    st.markdown(f"## Selamat datang, {st.session_state.user_name}")
+    st.write("Silakan gunakan menu di sebelah kiri untuk menjelajahi konten dashboard.")
+
+# Routing utama
+if not st.session_state.logged_in:
+    show_login()
+else:
+    show_dashboard()
