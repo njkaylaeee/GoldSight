@@ -2,60 +2,55 @@ import streamlit as st
 import pickle
 import os
 
-st.set_page_config(page_title="Model yang Digunakan", layout="wide")
-
-st.title("🧠 Model Prediksi Harga Emas")
+st.title("Model Prediksi Harga Emas")
 
 st.markdown("""
-Pada proyek ini, beberapa model Machine Learning telah dilatih untuk memprediksi harga penutupan (*close*) emas berdasarkan fitur-fitur berikut:
+Model yang digunakan pada sistem prediksi ini adalah **Gradient Boosting Regressor**.
 
-- **Open**: Harga pembukaan
-- **High**: Harga tertinggi harian
-- **Low**: Harga terendah harian
-- **Volume**: Volume perdagangan
+Model ini telah dilatih menggunakan fitur:
+- `Open`
+- `High`
+- `Low`
+- `Volume`
 
-Model yang digunakan antara lain:
+Dengan target prediksi:
+- `Close` (Harga Penutupan Emas)
+
+Gradient Boosting Regressor dikenal memiliki performa yang sangat baik dalam menangani hubungan non-linear dan kompleks antar fitur.
 """)
 
-model_paths = {
-    "Linear Regression": "models/linear_regression.pkl",
-    "Random Forest Regressor": "models/random_forest.pkl",
-    "Gradient Boosting Regressor": "models/gradient_boosting_model.pkl"
-}
+model_path = "models/gradient_boosting_model.pkl"
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.info("🔹 **Linear Regression**\n\nModel sederhana yang mencari hubungan linier antar fitur.")
-with col2:
-    st.info("🌲 **Random Forest**\n\nKumpulan decision tree yang digabung untuk meningkatkan akurasi.")
-with col3:
-    st.info("🚀 **Gradient Boosting**\n\nModel canggih yang belajar dari kesalahan model sebelumnya.")
+if os.path.exists(model_path):
+    try:
+        with open(model_path, "rb") as file:
+            model = pickle.load(file)
 
-st.markdown("---")
+        st.success("Model Gradient Boosting berhasil dimuat.")
 
-selected_model = st.selectbox("📌 Pilih model untuk melihat detail:", list(model_paths.keys()))
-model_file = model_paths[selected_model]
+        # Jika model memiliki atribut feature_importances_, tampilkan
+        if hasattr(model, "feature_importances_"):
+            import pandas as pd
+            import matplotlib.pyplot as plt
 
-if os.path.exists(model_file):
-    with open(model_file, "rb") as f:
-        model = pickle.load(f)
-    st.success(f"Model **{selected_model}** berhasil dimuat.")
+            fitur = ['Open', 'High', 'Low', 'Volume']
+            importances = model.feature_importances_
 
-    st.subheader("📊 Informasi Model")
+            df_feat = pd.DataFrame({
+                'Fitur': fitur,
+                'Pentingnya': importances
+            }).sort_values(by='Pentingnya', ascending=False)
 
-    if hasattr(model, 'coef_'):
-        st.markdown("**Koefisien:**")
-        st.write(model.coef_)
+            st.subheader("🔍 Pentingnya Fitur (Feature Importance)")
+            st.dataframe(df_feat)
 
-    if hasattr(model, 'feature_importances_'):
-        st.markdown("**Feature Importance:**")
-        st.bar_chart(model.feature_importances_)
+            fig, ax = plt.subplots()
+            ax.barh(df_feat['Fitur'], df_feat['Pentingnya'], color='gold')
+            ax.set_xlabel("Pentingnya")
+            ax.set_title("Visualisasi Pentingnya Fitur")
+            st.pyplot(fig)
 
-    if hasattr(model, 'intercept_'):
-        st.markdown("**Intercept:**")
-        st.write(model.intercept_)
-
-    st.markdown("Model ini siap digunakan untuk prediksi harga emas berdasarkan input pengguna di halaman **Formulir Prediksi**.")
+    except Exception as e:
+        st.error(f"Gagal memuat model: {e}")
 else:
-    st.error(f"Model **{selected_model}** tidak ditemukan di path: `{model_file}`.")
-    st.markdown("🚨 Silakan periksa apakah file model sudah diunggah ke folder `models/`.")
+    st.warning(f"File model tidak ditemukan di: `{model_path}`.\n\nPastikan Anda telah mengunggah file `gradient_boosting_model.pkl` ke dalam folder `models/` di GitHub.")
