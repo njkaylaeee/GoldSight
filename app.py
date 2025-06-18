@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
 
 # Inisialisasi session state
 if 'logged_in' not in st.session_state:
@@ -11,56 +13,65 @@ def logout():
     st.session_state.logged_in = False
     st.session_state.user_name = ""
 
-# Tampilan awal (simulasi modal)
-if not st.session_state.logged_in:
-    st.markdown("""
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                    background-color: rgba(0, 0, 0, 0.6); display: flex;
-                    justify-content: center; align-items: center; z-index: 9999;">
-            <div style="background-color: white; padding: 2rem 3rem; border-radius: 1rem;
-                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); text-align: center;">
-                <h2>🎉 Selamat Datang!</h2>
-                <p>Silakan masukkan nama kamu terlebih dahulu!</p>
-                <form action="" method="post">
-                    <input name="user_input" id="user_input" placeholder="Nama Anda"
-                        style="padding: 0.5rem 1rem; font-size: 1rem; width: 100%; margin-bottom: 1rem;" />
-                    <button type="submit" style="padding: 0.5rem 2rem; background-color: #4CAF50;
-                        color: white; border: none; border-radius: 0.3rem; font-size: 1rem;">
-                        Masuk
-                    </button>
-                </form>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    name = st.text_input("Nama Anda", key="name_input", label_visibility="collapsed")
-    if name:
+# Fungsi login (dengan nama)
+def login():
+    name = st.session_state.name_input.strip()
+    if name != "":
+        st.session_state.user_name = name
         st.session_state.logged_in = True
-        st.session_state.user_name = name.strip()
-        st.experimental_rerun()
 
-# Jika sudah login
-if st.session_state.logged_in:
-    # Sidebar Navigasi
-    st.sidebar.title("Navigasi")
-    menu = st.sidebar.radio("Pilih Halaman", ["Main", "Analisis Pasar", "Prediksi Harga", "Edukasi FAQ", "Feedback"])
-    st.sidebar.button("Logout", on_click=logout)
+# Tampilan "Popup" Login Simulasi
+if not st.session_state.logged_in:
+    with st.container():
+        st.markdown(
+            """
+            <style>
+                .overlay {
+                    position: fixed; top: 0; left: 0;
+                    width: 100vw; height: 100vh;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex; justify-content: center;
+                    align-items: center; z-index: 9999;
+                }
+                .login-box {
+                    background-color: white; padding: 2rem 3rem;
+                    border-radius: 1rem;
+                    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                    width: 100%;
+                    max-width: 400px;
+                }
+            </style>
+            <div class="overlay">
+                <div class="login-box">
+                    <h2>🎉 Selamat Datang!</h2>
+                    <p>Silakan masukkan nama kamu terlebih dahulu!</p>
+            """,
+            unsafe_allow_html=True
+        )
+        st.text_input("Nama Anda", key="name_input", label_visibility="collapsed")
+        if st.button("Masuk"):
+            login()
+        st.markdown("</div></div>", unsafe_allow_html=True)
+    st.stop()  # Hentikan eksekusi hingga login berhasil
 
-    # Halaman Utama
-    if menu == "Main":
-        st.markdown("## 🥇 GoldSight: Navigasi Cerdas Investasi Emas Anda")
-        st.markdown(f"### Halo {st.session_state.user_name}! Welcome to Dashboard! 🚀")
-        st.markdown("""
-        **GoldSight** membantu investor memahami tren harga emas dan membuat keputusan berbasis data
-        di tengah volatilitas pasar global. Dengan model GRU dan data historis sejak 2000, kami menyediakan
-        prediksi akurat dan wawasan pasar yang mudah diakses.
-        """)
+# Jika sudah login, tampilkan dashboard
+st.sidebar.title("Navigasi")
+menu = st.sidebar.radio("Pilih Halaman", ["Main", "Analisis Pasar", "Prediksi Harga", "Edukasi FAQ", "Feedback"])
+st.sidebar.button("Logout", on_click=logout)
 
-        # Contoh grafik dummy
-        import pandas as pd
-        import numpy as np
-        dummy_data = pd.DataFrame({
-            "Tanggal": pd.date_range("2024-01-01", periods=30),
-            "Harga": np.random.uniform(2500, 3200, 30)
-        })
-        st.line_chart(dummy_data.rename(columns={"Tanggal": "index"}).set_index("index"))
+if menu == "Main":
+    st.markdown("## 🥇 GoldSight: Navigasi Cerdas Investasi Emas Anda")
+    st.markdown(f"### Halo {st.session_state.user_name}! Welcome to Dashboard! 🚀")
+    st.markdown("""
+    **GoldSight** membantu investor memahami tren harga emas dan membuat keputusan berbasis data
+    di tengah volatilitas pasar global. Dengan model GRU dan data historis sejak 2000, kami menyediakan
+    prediksi akurat dan wawasan pasar yang mudah diakses.
+    """)
+    
+    # Grafik dummy tren emas
+    dummy_data = pd.DataFrame({
+        "Tanggal": pd.date_range("2024-01-01", periods=30),
+        "Harga": np.random.uniform(2500, 3200, 30)
+    })
+    st.line_chart(dummy_data.rename(columns={"Tanggal": "index"}).set_index("index"))
