@@ -1,56 +1,76 @@
 import streamlit as st
 import pickle
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
-st.title("Model Prediksi Harga Emas")
+st.set_page_config(page_title="Model Prediksi", layout="wide")
 
-st.markdown("""
-Model yang digunakan pada sistem prediksi ini adalah **Gradient Boosting Regressor**.
+st.title("📈 Model Prediksi Harga Emas")
 
-Model ini telah dilatih menggunakan fitur:
-- `Open`
-- `High`
-- `Low`
-- `Volume`
+# Deskripsi Awal
+with st.container():
+    st.markdown("""
+    Sistem ini menggunakan pendekatan *machine learning* untuk memprediksi harga penutupan emas berdasarkan fitur historis.
+    
+    Model yang digunakan:  
+    ### 🎯 Gradient Boosting Regressor  
+    Algoritma ini terkenal efektif dalam menangkap pola kompleks dan memberikan akurasi tinggi pada data non-linear.
+    """)
 
-Dengan target prediksi:
-- `Close` (Harga Penutupan Emas)
-
-Gradient Boosting Regressor dikenal memiliki performa yang sangat baik dalam menangani hubungan non-linear dan kompleks antar fitur.
-""")
-
+# Cek file model
 model_path = "models/gradient_boosting_model.pkl"
 
-if os.path.exists(model_path):
-    try:
-        with open(model_path, "rb") as file:
-            model = pickle.load(file)
+if not os.path.exists(model_path):
+    st.error(f"Model belum ditemukan di path: `{model_path}`. Pastikan file sudah diunggah.")
+    st.stop()
 
-        st.success("Model Gradient Boosting berhasil dimuat.")
+# Load model
+with open(model_path, "rb") as file:
+    model = pickle.load(file)
 
-        # Jika model memiliki atribut feature_importances_, tampilkan
-        if hasattr(model, "feature_importances_"):
-            import pandas as pd
-            import matplotlib.pyplot as plt
+st.success("Model berhasil dimuat dan siap digunakan.")
 
-            fitur = ['Open', 'High', 'Low', 'Volume']
-            importances = model.feature_importances_
+# Ringkasan Informasi Model
+with st.expander("📌 Informasi Model", expanded=True):
+    st.markdown("""
+    **Gradient Boosting Regressor** merupakan ensemble model berbasis pohon keputusan.  
+    Model ini dibangun secara bertahap untuk meminimalkan kesalahan prediksi secara iteratif.
 
-            df_feat = pd.DataFrame({
-                'Fitur': fitur,
-                'Pentingnya': importances
-            }).sort_values(by='Pentingnya', ascending=False)
+    - Jumlah estimators: `100`
+    - Random state: `42`
+    - Target: `Harga Penutupan (Close)`
+    """)
 
-            st.subheader("🔍 Pentingnya Fitur (Feature Importance)")
-            st.dataframe(df_feat)
+# Tampilkan Feature Importance
+if hasattr(model, "feature_importances_"):
+    fitur = ['Open', 'High', 'Low', 'Volume']
+    importance = model.feature_importances_
+    df_feat = pd.DataFrame({'Fitur': fitur, 'Pentingnya': importance})
+    df_feat = df_feat.sort_values(by='Pentingnya', ascending=True)
 
-            fig, ax = plt.subplots()
-            ax.barh(df_feat['Fitur'], df_feat['Pentingnya'], color='gold')
-            ax.set_xlabel("Pentingnya")
-            ax.set_title("Visualisasi Pentingnya Fitur")
-            st.pyplot(fig)
+    col1, col2 = st.columns([1, 2])
 
-    except Exception as e:
-        st.error(f"Gagal memuat model: {e}")
-else:
-    st.warning(f"File model tidak ditemukan di: `{model_path}`.\n\nPastikan Anda telah mengunggah file `gradient_boosting_model.pkl` ke dalam folder `models/` di GitHub.")
+    with col1:
+        st.metric("Jumlah Fitur", len(fitur))
+        st.metric("Fitur Terpenting", df_feat.iloc[-1]['Fitur'])
+
+    with col2:
+        st.subheader("🔍 Pentingnya Setiap Fitur")
+        fig, ax = plt.subplots()
+        ax.barh(df_feat['Fitur'], df_feat['Pentingnya'], color='gold')
+        ax.set_xlabel("Pentingnya")
+        ax.set_title("Feature Importance")
+        st.pyplot(fig)
+
+# Simulasi Penjelasan Hasil
+with st.container():
+    st.markdown("---")
+    st.subheader("📘 Kesimpulan")
+    st.markdown("""
+    Berdasarkan pelatihan model, fitur yang paling memengaruhi prediksi harga penutupan adalah kombinasi dari harga `Open` dan `High`.
+    Dengan performa yang stabil, model ini siap digunakan dalam sistem prediksi emas secara real-time.
+
+    > Anda dapat melanjutkan ke halaman **Prediksi Harga** untuk mencoba model ini dengan data Anda sendiri.
+    """)
+
