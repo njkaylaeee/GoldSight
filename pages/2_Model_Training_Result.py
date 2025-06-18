@@ -1,76 +1,64 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
 import pickle
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Model Prediksi", layout="wide")
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 
+# --- Judul Halaman ---
 st.title("📈 Model Prediksi Harga Emas")
 
-# Deskripsi Awal
-with st.container():
-    st.markdown("""
-    Sistem ini menggunakan pendekatan *machine learning* untuk memprediksi harga penutupan emas berdasarkan fitur historis.
-    
-    Model yang digunakan:  
-    ### 🎯 Gradient Boosting Regressor  
-    Algoritma ini terkenal efektif dalam menangkap pola kompleks dan memberikan akurasi tinggi pada data non-linear.
-    """)
+st.markdown("""
+Halaman ini menampilkan beberapa model yang telah dilatih untuk memprediksi harga penutupan (*Close*) dari harga emas berdasarkan fitur:
+- **Open**
+- **High**
+- **Low**
+- **Volume**
 
-# Cek file model
-model_path = "models/gradient_boosting_model.pkl"
+Model dilatih dengan data historis dan dapat dibandingkan dari sisi karakteristik serta kompleksitasnya.
+""")
 
-if not os.path.exists(model_path):
-    st.error(f"Model belum ditemukan di path: `{model_path}`. Pastikan file sudah diunggah.")
+# --- Pilihan Model ---
+model_options = {
+    "Linear Regression": "models/linear_regression_model.pkl",
+    "Random Forest Regressor": "models/random_forest_model.pkl",
+    "Gradient Boosting Regressor": "models/gradient_boosting_model.pkl"
+}
+
+selected_model_name = st.selectbox("Pilih Model untuk Ditampilkan:", list(model_options.keys()))
+model_path = model_options[selected_model_name]
+
+# --- Load Model ---
+try:
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+except FileNotFoundError:
+    st.error(f"Model {selected_model_name} tidak ditemukan.")
     st.stop()
 
-# Load model
-with open(model_path, "rb") as file:
-    model = pickle.load(file)
+# --- Tampilkan Informasi Model ---
+st.subheader(f"🧠 Informasi Model: {selected_model_name}")
 
-st.success("Model berhasil dimuat dan siap digunakan.")
+if isinstance(model, LinearRegression):
+    st.markdown("**Tipe:** Regresi Linear Sederhana")
+    coef_df = pd.DataFrame({
+        "Fitur": ["Open", "High", "Low", "Volume"],
+        "Koefisien": model.coef_
+    })
+    st.dataframe(coef_df, use_container_width=True)
+    st.write("**Intercept:**", model.intercept_)
 
-# Ringkasan Informasi Model
-with st.expander("📌 Informasi Model", expanded=True):
-    st.markdown("""
-    **Gradient Boosting Regressor** merupakan ensemble model berbasis pohon keputusan.  
-    Model ini dibangun secara bertahap untuk meminimalkan kesalahan prediksi secara iteratif.
+elif isinstance(model, RandomForestRegressor) or isinstance(model, GradientBoostingRegressor):
+    st.markdown("**Tipe:** Ensemble Tree-Based Regressor")
+    importance_df = pd.DataFrame({
+        "Fitur": ["Open", "High", "Low", "Volume"],
+        "Feature Importance": model.feature_importances_
+    }).sort_values(by="Feature Importance", ascending=False)
+    st.bar_chart(importance_df.set_index("Fitur"))
+else:
+    st.warning("Tipe model tidak dikenali.")
 
-    - Jumlah estimators: `100`
-    - Random state: `42`
-    - Target: `Harga Penutupan (Close)`
-    """)
-
-# Tampilkan Feature Importance
-if hasattr(model, "feature_importances_"):
-    fitur = ['Open', 'High', 'Low', 'Volume']
-    importance = model.feature_importances_
-    df_feat = pd.DataFrame({'Fitur': fitur, 'Pentingnya': importance})
-    df_feat = df_feat.sort_values(by='Pentingnya', ascending=True)
-
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.metric("Jumlah Fitur", len(fitur))
-        st.metric("Fitur Terpenting", df_feat.iloc[-1]['Fitur'])
-
-    with col2:
-        st.subheader("🔍 Pentingnya Setiap Fitur")
-        fig, ax = plt.subplots()
-        ax.barh(df_feat['Fitur'], df_feat['Pentingnya'], color='gold')
-        ax.set_xlabel("Pentingnya")
-        ax.set_title("Feature Importance")
-        st.pyplot(fig)
-
-# Simulasi Penjelasan Hasil
-with st.container():
-    st.markdown("---")
-    st.subheader("📘 Kesimpulan")
-    st.markdown("""
-    Berdasarkan pelatihan model, fitur yang paling memengaruhi prediksi harga penutupan adalah kombinasi dari harga `Open` dan `High`.
-    Dengan performa yang stabil, model ini siap digunakan dalam sistem prediksi emas secara real-time.
-
-    > Anda dapat melanjutkan ke halaman **Prediksi Harga** untuk mencoba model ini dengan data Anda sendiri.
-    """)
-
+# --- Penutup ---
+st.info("Model ini akan digunakan pada halaman *Formulir Prediksi* untuk memprediksi harga emas berdasarkan input pengguna.")
