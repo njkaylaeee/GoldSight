@@ -13,32 +13,42 @@ def logout():
     st.session_state.logged_in = False
     st.session_state.user_name = ""
 
-# Jika belum login, tampilkan modal popup
+# Tampilan sebelum login
 if not st.session_state.logged_in:
     st.markdown("""
         <style>
-        .stApp {
-            background-color: rgba(0, 0, 0, 0.5);
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+        }
+        .login-box {
+            background-color: white;
+            padding: 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            text-align: center;
         }
         </style>
+        <div class="login-container">
+            <div class="login-box">
+                <h2>🎉 Selamat Datang!</h2>
+                <p>Silakan masukkan nama kamu terlebih dahulu!</p>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown("<br><br><br>", unsafe_allow_html=True)
-        with st.center():
-            with st.container(border=True):
-                st.markdown("### 🎉 Selamat Datang!")
-                st.write("Silakan masukkan nama kamu terlebih dahulu!")
+    name = st.text_input("Nama", key="name_input")
+    if st.button("Masuk 🚀"):
+        if name.strip() != "":
+            st.session_state.logged_in = True
+            st.session_state.user_name = name.strip()
+            st.rerun()
+        else:
+            st.warning("Nama tidak boleh kosong.")
 
-                name = st.text_input("Nama", key="name_input")
-
-                if st.button("Masuk 🚀"):
-                    if name.strip() != "":
-                        st.session_state.logged_in = True
-                        st.session_state.user_name = name.strip()
-                        st.rerun()
-                    else:
-                        st.warning("Nama tidak boleh kosong.")
+# Setelah login
 else:
     # Sidebar
     st.sidebar.title("GoldSight")
