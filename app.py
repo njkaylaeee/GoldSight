@@ -3,92 +3,110 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Inisialisasi session state
-if "logged_in" not in st.session_state:
+if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
-if "user_name" not in st.session_state:
+if 'user_name' not in st.session_state:
     st.session_state.user_name = ""
 
-# Fungsi logout
+# Fungsi Logout
 def logout():
     st.session_state.logged_in = False
     st.session_state.user_name = ""
 
-# Tampilan sebelum login
+# Tampilan awal: Modal input nama
 if not st.session_state.logged_in:
-    st.markdown("""
-        <style>
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 90vh;
-        }
-        .login-box {
-            background-color: white;
-            padding: 3rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-        </style>
-        <div class="login-container">
-            <div class="login-box">
-                <h2>🎉 Selamat Datang!</h2>
-                <p>Silakan masukkan nama kamu terlebih dahulu!</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    name = st.text_input("Nama", key="name_input")
-    if st.button("Masuk 🚀"):
-        if name.strip() != "":
-            st.session_state.logged_in = True
-            st.session_state.user_name = name.strip()
-            st.rerun()
-        else:
-            st.warning("Nama tidak boleh kosong.")
-
-# Setelah login
-else:
-    # Sidebar
-    st.sidebar.title("GoldSight")
-    page = st.sidebar.radio("Navigasi", ["Main", "Analisis Pasar", "Prediksi Harga", "Edukasi FAQ", "Feedback"])
-    st.sidebar.button("Logout", on_click=logout)
-
-    # Halaman utama
-    if page == "Main":
-        st.markdown("## 🥇 **GoldSight: Navigasi Cerdas Investasi Emas Anda**")
-        st.markdown(f"### Halo {st.session_state.user_name.lower()}! Welcome to Dashboard! 🚀")
+    with st.container():
         st.markdown("""
-        **GoldSight** membantu investor memahami tren harga emas dan membuat keputusan berbasis data di tengah volatilitas pasar global.
-        Dengan model GRU dan data historis sejak 2000, kami menyediakan prediksi akurat dan wawasan pasar yang mudah diakses.
+            <style>
+            .big-font {
+                font-size:28px !important;
+                text-align: center;
+            }
+            .centered {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        with st.modal("🚀 Selamat Datang di GoldSight", closable=False):
+            st.markdown("### Masukkan Nama Anda untuk Memulai")
+            name = st.text_input("Nama Lengkap")
+            if st.button("Masuk"):
+                if name.strip() != "":
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = name.strip().capitalize()
+                    st.rerun()
+                else:
+                    st.warning("Nama tidak boleh kosong!")
+
+# Tampilan utama setelah login
+else:
+    # Sidebar hanya muncul jika sudah login
+    st.sidebar.title("📊 Navigasi")
+    page = st.sidebar.radio("Pilih Halaman:", [
+        "Beranda",
+        "Analisis Dataset",
+        "Hasil Model",
+        "Prediksi Harga",
+        "Tentang & FAQ"
+    ])
+    st.sidebar.button("🚪 Logout", on_click=logout)
+
+    # Halaman Beranda
+    if page == "Beranda":
+        st.markdown(f"## 👋 Selamat datang, {st.session_state.user_name}!")
+        st.write("Selamat menjelajahi dashboard **GoldSight**.")
+        st.markdown("""
+            GoldSight adalah aplikasi analisis harga emas dan prediksi berbasis machine learning
+            untuk membantu investor memahami tren dan membuat keputusan cerdas.
         """)
+        st.image("https://cdn.pixabay.com/photo/2020/08/13/14/32/gold-5489486_1280.jpg", use_column_width=True)
 
-        # Contoh visualisasi dummy
-        st.markdown("### Tren Harga Emas Terkini (USD)")
-        data = pd.DataFrame({
-            "Tanggal": pd.date_range(start="2024-01-01", periods=30),
-            "Harga": [2900 + i * 5 + (i % 3) * 30 for i in range(30)]
-        })
-        fig, ax = plt.subplots()
-        ax.plot(data["Tanggal"], data["Harga"], color='blue')
-        ax.set_xlabel("Tanggal")
-        ax.set_ylabel("Harga Emas (USD)")
-        st.pyplot(fig)
+    elif page == "Analisis Dataset":
+        st.header("📊 Analisis Dataset Harga Emas")
+        df = pd.read_csv("final_gold_data.csv")
 
-    elif page == "Analisis Pasar":
-        st.header("📊 Analisis Pasar Emas")
-        st.info("Halaman ini akan berisi grafik dan insight pasar emas.")
+        st.subheader("Cuplikan Data")
+        st.dataframe(df.head())
+
+        st.subheader("Statistik Deskriptif")
+        st.write(df.describe())
+
+        if 'close' in df.columns:
+            st.subheader("Visualisasi Harga Penutupan Emas")
+            fig, ax = plt.subplots()
+            ax.plot(df['close'], label='Harga Penutupan', color='gold')
+            ax.set_xlabel("Index Waktu")
+            ax.set_ylabel("Harga (USD)")
+            ax.set_title("Tren Harga Penutupan Emas")
+            ax.legend()
+            st.pyplot(fig)
+        else:
+            st.warning("Kolom 'close' tidak tersedia di dataset.")
+
+    elif page == "Hasil Model":
+        st.header("🧠 Hasil Pelatihan Model")
+        st.write("Halaman ini akan menampilkan evaluasi model (akurasi, loss, dll).")
+        st.info("Silakan tambahkan visualisasi metrik model di sini.")
 
     elif page == "Prediksi Harga":
-        st.header("🔮 Prediksi Harga Emas")
-        st.info("Halaman ini akan menampilkan hasil prediksi model GRU.")
+        st.header("📈 Prediksi Harga Emas")
+        st.write("Formulir input data dan prediksi harga akan ditampilkan di sini.")
+        st.info("Implementasi model GRU/ML akan dimuat di sini.")
 
-    elif page == "Edukasi FAQ":
-        st.header("📘 Edukasi dan FAQ")
-        st.info("Berisi penjelasan dasar tentang investasi emas dan FAQ.")
+    elif page == "Tentang & FAQ":
+        st.header("📘 Tentang & FAQ")
+        st.markdown("""
+        **Apa itu GoldSight?**  
+        Platform untuk memprediksi harga emas berdasarkan data historis dan sentimen berita.
 
-    elif page == "Feedback":
-        st.header("✍️ Feedback")
-        st.text_area("Berikan saran atau pertanyaan:")
-        st.button("Kirim")
+        **Model apa yang digunakan?**  
+        GRU (Gated Recurrent Unit) dengan embedding sentimen dan data historis.
+
+        **Siapa yang bisa menggunakan ini?**  
+        Investor, analis, pelajar, atau siapa pun yang tertarik dengan pasar emas.
+        """)
+
+        st.success("Terima kasih sudah menggunakan GoldSight!")
