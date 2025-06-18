@@ -17,7 +17,7 @@ def show_login():
     st.write("Silakan masukkan nama Anda untuk mengakses dashboard.")
     
     with st.form("login_form", clear_on_submit=True):
-        name = st.text_input("Nama Lengkap:")
+        name = st.text_input("Nama:")
         submit = st.form_submit_button("Masuk")
         if submit:
             if name.strip() == "":
