@@ -1,110 +1,60 @@
+# pages/2_Model_Overview.py
+
 import streamlit as st
 import pickle
 import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import mean_squared_error, r2_score
 
-st.set_page_config(page_title="Hasil Pelatihan Model", layout="wide")
-st.title("📈 Hasil Pelatihan Model Prediksi Harga Emas")
+st.set_page_config(page_title="Model Overview", layout="wide")
+st.title("📈 Model Prediksi Harga Emas")
 
 st.markdown("""
-Halaman ini menampilkan performa dari beberapa model Machine Learning yang telah dilatih untuk memprediksi harga penutupan (close) emas berdasarkan fitur:
-- Open
-- High
-- Low
-- Volume
+Selamat datang di halaman _Model Overview_. Di sini Anda dapat melihat informasi terkait model yang telah dilatih untuk memprediksi harga emas berdasarkan data historis.  
+Tiga model yang telah digunakan adalah:
 
-Setiap model dibandingkan berdasarkan akurasi prediksi (R²) dan galat kuadrat rata-rata (MSE).
+- **Linear Regression**
+- **Random Forest Regressor**
+- **Gradient Boosting Regressor**
+
+Masing-masing model memiliki pendekatan dan keunggulan berbeda dalam menangkap pola data.
 """)
 
-# Fungsi load scaler
-@st.cache_resource
-def load_scaler():
-    try:
-        with open("scaler.pkl", "rb") as f:
-            return pickle.load(f)
-    except:
-        return None
+st.markdown("---")
 
-# Load data uji
-@st.cache_data
-def load_test_data():
-    df = pd.read_csv("clean_gold_data.csv")
-    X = df[['open', 'high', 'low', 'volume']]
-    y = df['close']
-    return X, y
-
-# Evaluasi model
-def evaluate_model(model, X, y):
-    scaler = load_scaler()
-    if scaler:
-        X_scaled = scaler.transform(X)
+# Fungsi untuk menampilkan informasi model
+def tampilkan_model(nama_model, filename):
+    st.subheader(nama_model)
+    if os.path.exists(filename):
+        try:
+            with open(filename, "rb") as f:
+                model = pickle.load(f)
+            if hasattr(model, "coef_"):
+                st.success("Model berhasil dimuat.")
+                st.write("**Koefisien:**", model.coef_)
+                st.write("**Intercept:**", model.intercept_)
+            elif hasattr(model, "feature_importances_"):
+                st.success("Model berhasil dimuat.")
+                st.bar_chart(model.feature_importances_)
+                st.caption("Grafik di atas menunjukkan pentingnya setiap fitur dalam prediksi.")
+            else:
+                st.info("Model dimuat, tetapi tidak ada koefisien atau importansi fitur yang tersedia.")
+        except Exception as e:
+            st.error(f"Gagal memuat model: {e}")
     else:
-        X_scaled = X
-    y_pred = model.predict(X_scaled)
-    mse = mean_squared_error(y, y_pred)
-    r2 = r2_score(y, y_pred)
-    return mse, r2, y_pred
+        st.warning(f"Model **{nama_model}** belum tersedia di direktori.")
 
-# Load & evaluasi model
-def load_model_and_evaluate(name, path, X, y):
-    try:
-        with open(path, "rb") as f:
-            model = pickle.load(f)
-        mse, r2, y_pred = evaluate_model(model, X, y)
-        return model, mse, r2, y_pred
-    except Exception as e:
-        st.error(f"❌ Gagal memuat model {name}: {e}")
-        return None, None, None, None
+# Tampilkan semua model
+col1, col2 = st.columns(2)
 
-# Model paths
-model_paths = {
-    "Linear Regression": "linear_regression_model.pkl",
-    "Random Forest Regressor": "random_forest_model.pkl",
-    "Gradient Boosting Regressor": "gradient_boosting_model.pkl"
-}
+with col1:
+    tampilkan_model("Linear Regression", "linear_regression_model.pkl")
+with col2:
+    tampilkan_model("Random Forest Regressor", "random_forest_model.pkl")
 
-X_test, y_test = load_test_data()
+st.markdown("---")
 
-st.divider()
-st.subheader("📊 Perbandingan Performa Model")
+tampilkan_model("Gradient Boosting Regressor", "gradient_boosting_model.pkl")
 
-results = []
-
-for model_name, model_file in model_paths.items():
-    model, mse, r2, y_pred = load_model_and_evaluate(model_name, model_file, X_test, y_test)
-    if model:
-        results.append({"Model": model_name, "MSE": mse, "R2": r2})
-
-# Tampilkan tabel hasil evaluasi
-if results:
-    result_df = pd.DataFrame(results).sort_values(by="R2", ascending=False)
-    st.dataframe(result_df.style.background_gradient(cmap='YlGn'), use_container_width=True)
-
-    # Visualisasi perbandingan R²
-    st.subheader("📈 Visualisasi R² Setiap Model")
-    fig_r2, ax = plt.subplots(figsize=(8, 4))
-    sns.barplot(x="R2", y="Model", data=result_df, palette="viridis", ax=ax)
-    ax.set_title("Skor R² per Model")
-    ax.set_xlim(0, 1)
-    st.pyplot(fig_r2)
-
-    # Visualisasi prediksi vs aktual untuk model terbaik
-    best_model_row = result_df.iloc[0]
-    best_name = best_model_row['Model']
-    _, _, _, best_pred = load_model_and_evaluate(best_name, model_paths[best_name], X_test, y_test)
-
-    st.subheader(f"🔍 Prediksi vs Aktual - {best_name}")
-    fig_line, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(y_test.values, label='Aktual', color='blue')
-    ax.plot(best_pred, label='Prediksi', color='orange')
-    ax.set_title(f"Prediksi vs Aktual Harga Penutupan oleh {best_name}")
-    ax.set_ylabel("Harga Emas")
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig_line)
-else:
-    st.warning("⚠️ Tidak ada model yang berhasil dimuat. Pastikan file model tersedia dan sesuai.")
+st.markdown("""
+> **Catatan:**  
+> Pastikan seluruh file model `.pkl` telah diunggah ke direktori utama aplikasi (bukan dalam folder) agar dapat terbaca dengan baik.
+""")
