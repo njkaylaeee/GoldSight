@@ -2,46 +2,41 @@ import streamlit as st
 
 st.set_page_config(page_title="GoldSight", page_icon=":bar_chart:", layout="centered")
 
-# --- Gaya CSS untuk blur saat popup muncul ---
-def set_blur():
-    st.markdown("""
-        <style>
-        .blur {
-            filter: blur(4px);
-            pointer-events: none;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-# --- Header Gambar ---
-st.image("assets/gold_icon.png", width=120)
-
-# --- Judul dan deskripsi ---
-st.markdown("""
-# **GoldSight** [Navigasi Cerdas Investasi Emas Anda](#)
-#### Prediksi Harga Emas Berbasis Deep Learning
-
-**GoldSight** membantu investor memahami tren harga emas dan membuat keputusan berbasis data di tengah volatilitas pasar global.
-""")
-
-# --- Tombol Masuk Dashboard ---
+# --- Simpan status pengguna ---
+if 'user_name' not in st.session_state:
+    st.session_state.user_name = ""
 if 'show_popup' not in st.session_state:
     st.session_state.show_popup = False
 
-if st.button("🚀 Go to Dashboard"):
-    st.session_state.show_popup = True
+# --- Logo ---
+st.image("assets/gold_icon.png", width=120)
 
-# --- Pop-Up Form Nama ---
-if st.session_state.show_popup:
-    set_blur()  # Blur background
-    with st.container():
-        st.markdown("### 🎉 Selamat Datang!")
-        name = st.text_input("Silakan masukkan nama kamu terlebih dahulu!", key="name")
-        if st.button("Masuk"):
+# --- Judul ---
+st.markdown("""
+# **GoldSight**  
+#### Navigasi Cerdas Investasi Emas Anda
+
+Prediksi harga emas berbasis deep learning untuk keputusan investasi terbaik.
+""")
+
+# --- Tombol buka pop-up ---
+if not st.session_state.user_name:
+    if st.button("🚀 Go to Dashboard"):
+        st.session_state.show_popup = True
+
+# --- Pop-up input nama ---
+if st.session_state.show_popup and not st.session_state.user_name:
+    with st.form("login_form", clear_on_submit=True):
+        name = st.text_input("Masukkan nama Anda:")
+        submit = st.form_submit_button("Masuk")
+        if submit:
             if name.strip():
-                st.success(f"Selamat datang, {name.lower()}! 🎉")
-                st.markdown("""<meta http-equiv="refresh" content="2; URL='/pages/1_Dashboard'" />""",
-                            unsafe_allow_html=True)
+                st.session_state.user_name = name.strip().title()
+                st.success(f"Halo, {st.session_state.user_name}! Klik tombol di bawah untuk lanjut.")
             else:
-                st.warning("Nama tidak boleh kosong!")
+                st.warning("Nama tidak boleh kosong.")
 
+# --- Tampilkan tombol lanjut ke dashboard ---
+if st.session_state.user_name:
+    st.markdown(f"👋 Hai **{st.session_state.user_name}**, selamat datang di GoldSight!")
+    st.page_link("pages/1_Data_Exploration.py", label="📊 Buka Dashboard", icon="📈")
