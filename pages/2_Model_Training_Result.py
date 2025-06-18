@@ -54,7 +54,3 @@ st.markdown("---")
 
 tampilkan_model("Gradient Boosting Regressor", "gradient_boosting_model.pkl")
 
-st.markdown("""
-> **Catatan:**  
-> Pastikan seluruh file model `.pkl` telah diunggah ke direktori utama aplikasi (bukan dalam folder) agar dapat terbaca dengan baik.
-""")
