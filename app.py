@@ -13,10 +13,12 @@ def logout():
 
 # Halaman login
 def show_login():
-    st.markdown("<h1 style='text-align: center;'>🌟 Selamat Datang di GoldSight</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>Selamat Datang di GoldSight</h1>", unsafe_allow_html=True)
+    st.write("Silakan masukkan nama Anda untuk mengakses dashboard.")
+    
     with st.form("login_form", clear_on_submit=True):
-        name = st.text_input("Masukkan Nama Anda:")
-        submit = st.form_submit_button("Get Dashboard")
+        name = st.text_input("Nama Lengkap:")
+        submit = st.form_submit_button("Masuk")
         if submit:
             if name.strip() == "":
                 st.warning("Nama tidak boleh kosong.")
@@ -25,16 +27,16 @@ def show_login():
                 st.session_state.user_name = name.strip().capitalize()
                 st.rerun()
 
-# Halaman dashboard setelah login
+# Halaman utama setelah login
 def show_dashboard():
-    st.sidebar.title("🔎 Navigasi")
-    st.sidebar.success(f"Hai, {st.session_state.user_name} 👋")
-    st.sidebar.button("🚪 Logout", on_click=logout)
+    st.sidebar.title("Navigasi")
+    st.sidebar.markdown(f"Selamat datang, **{st.session_state.user_name}**")
+    st.sidebar.button("Keluar", on_click=logout)
 
-    st.markdown(f"## 👋 Selamat datang, {st.session_state.user_name}!")
-    st.success("Silakan menjelajahi dashboard menggunakan menu di sebelah kiri.")
+    st.markdown(f"## Selamat datang, {st.session_state.user_name}")
+    st.write("Silakan gunakan menu di sebelah kiri untuk menjelajahi konten dashboard.")
 
-# Main routing
+# Routing utama
 if not st.session_state.logged_in:
     show_login()
 else:
