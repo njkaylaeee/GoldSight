@@ -2,53 +2,60 @@ import streamlit as st
 import pickle
 import os
 
-st.title("📘 Model Prediksi Harga Emas")
+st.set_page_config(page_title="Model yang Digunakan", layout="wide")
+
+st.title("🧠 Model Prediksi Harga Emas")
 
 st.markdown("""
-Halaman ini menampilkan detail dari beberapa model machine learning yang telah dilatih untuk memprediksi harga emas berdasarkan fitur:
-- **Open**
-- **High**
-- **Low**
-- **Volume**
+Pada proyek ini, beberapa model Machine Learning telah dilatih untuk memprediksi harga penutupan (*close*) emas berdasarkan fitur-fitur berikut:
 
-Target prediksi: **Close Price** (Harga Penutupan)
+- **Open**: Harga pembukaan
+- **High**: Harga tertinggi harian
+- **Low**: Harga terendah harian
+- **Volume**: Volume perdagangan
+
+Model yang digunakan antara lain:
 """)
 
-# Menyediakan pilihan model
-model_options = {
+model_paths = {
     "Linear Regression": "models/linear_regression.pkl",
     "Random Forest Regressor": "models/random_forest.pkl",
-    "Gradient Boosting Regressor": "models/gradient_boosting.pkl"
+    "Gradient Boosting Regressor": "models/gradient_boosting_model.pkl"
 }
 
-selected_model = st.selectbox("Pilih Model:", list(model_options.keys()))
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.info("🔹 **Linear Regression**\n\nModel sederhana yang mencari hubungan linier antar fitur.")
+with col2:
+    st.info("🌲 **Random Forest**\n\nKumpulan decision tree yang digabung untuk meningkatkan akurasi.")
+with col3:
+    st.info("🚀 **Gradient Boosting**\n\nModel canggih yang belajar dari kesalahan model sebelumnya.")
 
-model_path = model_options[selected_model]
+st.markdown("---")
 
-if os.path.exists(model_path):
-    with open(model_path, "rb") as file:
-        model = pickle.load(file)
+selected_model = st.selectbox("📌 Pilih model untuk melihat detail:", list(model_paths.keys()))
+model_file = model_paths[selected_model]
 
+if os.path.exists(model_file):
+    with open(model_file, "rb") as f:
+        model = pickle.load(f)
     st.success(f"Model **{selected_model}** berhasil dimuat.")
 
-    if selected_model == "Linear Regression":
-        st.subheader("Koefisien Model:")
+    st.subheader("📊 Informasi Model")
+
+    if hasattr(model, 'coef_'):
+        st.markdown("**Koefisien:**")
         st.write(model.coef_)
-        st.subheader("Intercept:")
+
+    if hasattr(model, 'feature_importances_'):
+        st.markdown("**Feature Importance:**")
+        st.bar_chart(model.feature_importances_)
+
+    if hasattr(model, 'intercept_'):
+        st.markdown("**Intercept:**")
         st.write(model.intercept_)
 
-    else:
-        st.subheader("Fitur Penting (Feature Importance):")
-        import matplotlib.pyplot as plt
-        import pandas as pd
-        feature_names = ['Open', 'High', 'Low', 'Volume']
-        importance = model.feature_importances_
-
-        fig, ax = plt.subplots()
-        ax.barh(feature_names, importance, color='teal')
-        ax.set_xlabel("Tingkat Kepentingan")
-        ax.set_title("Feature Importance")
-        st.pyplot(fig)
-
+    st.markdown("Model ini siap digunakan untuk prediksi harga emas berdasarkan input pengguna di halaman **Formulir Prediksi**.")
 else:
-    st.error(f"Model `{selected_model}` tidak ditemukan di path: `{model_path}`.")
+    st.error(f"Model **{selected_model}** tidak ditemukan di path: `{model_file}`.")
+    st.markdown("🚨 Silakan periksa apakah file model sudah diunggah ke folder `models/`.")
