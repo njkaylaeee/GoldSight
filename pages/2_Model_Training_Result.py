@@ -1,111 +1,110 @@
-# pages/2_Model_Overview.py
-
 import streamlit as st
 import pickle
 import os
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.metrics import mean_squared_error, r2_score
 
-st.set_page_config(page_title="Model Overview", layout="wide")
-st.title("📈 Model Prediksi Harga Emas")
+st.set_page_config(page_title="Hasil Pelatihan Model", layout="wide")
+st.title("📈 Hasil Pelatihan Model Prediksi Harga Emas")
 
 st.markdown("""
-Halaman ini menyajikan ringkasan dari tiga model pembelajaran mesin yang telah dilatih untuk memprediksi harga emas berdasarkan fitur historis seperti **Open**, **High**, **Low**, dan **Volume**.
+Halaman ini menampilkan performa dari beberapa model Machine Learning yang telah dilatih untuk memprediksi harga penutupan (close) emas berdasarkan fitur:
+- Open
+- High
+- Low
+- Volume
 
-Model yang digunakan:
-- **Linear Regression**
-- **Random Forest Regressor**
-- **Gradient Boosting Regressor**
+Setiap model dibandingkan berdasarkan akurasi prediksi (R²) dan galat kuadrat rata-rata (MSE).
 """)
 
-st.markdown("---")
+# Fungsi load scaler
+@st.cache_resource
+def load_scaler():
+    try:
+        with open("scaler.pkl", "rb") as f:
+            return pickle.load(f)
+    except:
+        return None
 
-# Load dataset uji
+# Load data uji
 @st.cache_data
 def load_test_data():
-    if os.path.exists("clean_gold_data.csv"):
-        df = pd.read_csv("clean_gold_data.csv")
-        features = df[['open', 'high', 'low', 'volume']]
-        target = df['close']
-        return features, target
-    return None, None
+    df = pd.read_csv("clean_gold_data.csv")
+    X = df[['open', 'high', 'low', 'volume']]
+    y = df['close']
+    return X, y
 
-X_test, y_test = load_test_data()
-
-# Fungsi evaluasi model
+# Evaluasi model
 def evaluate_model(model, X, y):
-    y_pred = model.predict(X)
+    scaler = load_scaler()
+    if scaler:
+        X_scaled = scaler.transform(X)
+    else:
+        X_scaled = X
+    y_pred = model.predict(X_scaled)
     mse = mean_squared_error(y, y_pred)
     r2 = r2_score(y, y_pred)
-    return mse, r2
+    return mse, r2, y_pred
 
-# Fungsi untuk memuat dan evaluasi model
-def load_and_evaluate_model(name, filename):
-    if os.path.exists(filename):
-        with open(filename, "rb") as f:
+# Load & evaluasi model
+def load_model_and_evaluate(name, path, X, y):
+    try:
+        with open(path, "rb") as f:
             model = pickle.load(f)
-        mse, r2 = evaluate_model(model, X_test, y_test)
-        return {"Model": name, "MSE": mse, "R² Score": r2}, model
-    return {"Model": name, "MSE": None, "R² Score": None}, None
+        mse, r2, y_pred = evaluate_model(model, X, y)
+        return model, mse, r2, y_pred
+    except Exception as e:
+        st.error(f"❌ Gagal memuat model {name}: {e}")
+        return None, None, None, None
 
-# List model
-model_info = []
-models = {
+# Model paths
+model_paths = {
     "Linear Regression": "linear_regression_model.pkl",
     "Random Forest Regressor": "random_forest_model.pkl",
     "Gradient Boosting Regressor": "gradient_boosting_model.pkl"
 }
 
-model_objects = {}
+X_test, y_test = load_test_data()
 
-for name, path in models.items():
-    info, model_obj = load_and_evaluate_model(name, path)
-    model_info.append(info)
-    model_objects[name] = model_obj
+st.divider()
+st.subheader("📊 Perbandingan Performa Model")
 
-# Tampilkan tabel performa
-df_eval = pd.DataFrame(model_info)
-st.subheader("📊 Evaluasi Performa Model")
-st.dataframe(df_eval.style.format({"MSE": "{:.2f}", "R² Score": "{:.4f}"}), use_container_width=True)
+results = []
 
-# Visualisasi grafik batang
-st.subheader("🔍 Perbandingan Performa Model")
-col1, col2 = st.columns(2)
+for model_name, model_file in model_paths.items():
+    model, mse, r2, y_pred = load_model_and_evaluate(model_name, model_file, X_test, y_test)
+    if model:
+        results.append({"Model": model_name, "MSE": mse, "R2": r2})
 
-with col1:
-    st.markdown("**Mean Squared Error (MSE)**")
-    st.bar_chart(df_eval.set_index("Model")["MSE"])
+# Tampilkan tabel hasil evaluasi
+if results:
+    result_df = pd.DataFrame(results).sort_values(by="R2", ascending=False)
+    st.dataframe(result_df.style.background_gradient(cmap='YlGn'), use_container_width=True)
 
-with col2:
-    st.markdown("**R² Score**")
-    st.bar_chart(df_eval.set_index("Model")["R² Score"])
+    # Visualisasi perbandingan R²
+    st.subheader("📈 Visualisasi R² Setiap Model")
+    fig_r2, ax = plt.subplots(figsize=(8, 4))
+    sns.barplot(x="R2", y="Model", data=result_df, palette="viridis", ax=ax)
+    ax.set_title("Skor R² per Model")
+    ax.set_xlim(0, 1)
+    st.pyplot(fig_r2)
 
-# Tambahkan detail model jika dipilih
-st.markdown("---")
-st.subheader("📌 Detail Koefisien / Feature Importances")
+    # Visualisasi prediksi vs aktual untuk model terbaik
+    best_model_row = result_df.iloc[0]
+    best_name = best_model_row['Model']
+    _, _, _, best_pred = load_model_and_evaluate(best_name, model_paths[best_name], X_test, y_test)
 
-for name, model in model_objects.items():
-    with st.expander(name):
-        if model:
-            if hasattr(model, "coef_"):
-                st.write("**Koefisien:**")
-                coef_df = pd.DataFrame({
-                    "Fitur": X_test.columns,
-                    "Koefisien": model.coef_
-                })
-                st.table(coef_df)
-            elif hasattr(model, "feature_importances_"):
-                st.write("**Feature Importances:**")
-                importances_df = pd.DataFrame({
-                    "Fitur": X_test.columns,
-                    "Importance": model.feature_importances_
-                }).sort_values(by="Importance", ascending=False)
-                st.bar_chart(importances_df.set_index("Fitur"))
-        else:
-            st.warning("Model belum tersedia.")
-
-st.markdown("""
-> **Catatan:**  
-> Dataset `clean_gold_data.csv` digunakan sebagai data uji. Pastikan file ini berada di direktori utama bersama file model `.pkl`.
-""")
+    st.subheader(f"🔍 Prediksi vs Aktual - {best_name}")
+    fig_line, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(y_test.values, label='Aktual', color='blue')
+    ax.plot(best_pred, label='Prediksi', color='orange')
+    ax.set_title(f"Prediksi vs Aktual Harga Penutupan oleh {best_name}")
+    ax.set_ylabel("Harga Emas")
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig_line)
+else:
+    st.warning("⚠️ Tidak ada model yang berhasil dimuat. Pastikan file model tersedia dan sesuai.")
