@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 st.title("📊 Dataset & Visualisasi")
 
-# Load data
-df = pd.read_csv("final_gold_data.csv")
+# Pastikan path-nya sesuai
+csv_path = os.path.join(os.path.dirname(__file__), "..", "clean_gold_data.csv")
+df = pd.read_csv(csv_path)
+
 st.subheader("Cuplikan Data")
 st.dataframe(df.head())
 
